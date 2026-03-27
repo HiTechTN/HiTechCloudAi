@@ -1,0 +1,155 @@
+version: '3.9'
+
+services:
+  # Django Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: blink-backend
+    environment:
+      - DEBUG=False
+      - ALLOWED_HOSTS=*
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - SUPABASE_DB_URL=${SUPABASE_DB_URL}
+      - OLLAMA_API_URL=http://ollama:11434
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${DJANGO_SECRET_KEY:-your-secret-key-change-in-production}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./shared_data:/shared_data
+    depends_on:
+      - redis
+    networks:
+      - blink-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # React Frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: blink-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./src:/app/src
+      - ./frontend:/app/frontend
+    depends_on:
+      - backend
+    networks:
+      - blink-network
+    environment:
+      - VITE_API_URL=http://backend:8000
+      - VITE_CODE_SERVER_URL=http://code-server:8443
+
+  # VS Code Server for Web Editing
+  code-server:
+    image: codercom/code-server:latest
+    container_name: blink-code-server
+    environment:
+      - PASSWORD=${CODE_SERVER_PASSWORD:-password123}
+      - SUDO_PASSWORD=${CODE_SERVER_PASSWORD:-password123}
+    ports:
+      - "8443:8443"
+    volumes:
+      - ./shared_data:/home/coder/workspace
+      - code-server-config:/home/coder/.config
+    networks:
+      - blink-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8443"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis for Caching & Session Management
+  redis:
+    image: redis:7-alpine
+    container_name: blink-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - blink-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Nginx Reverse Proxy
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: blink-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - backend
+      - frontend
+      - code-server
+    networks:
+      - blink-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Cloudflare Tunnel
+  cloudflare-tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: blink-cloudflare-tunnel
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - blink-network
+    depends_on:
+      - nginx
+    restart: always
+
+  # Ollama (Optional - for local AI code generation)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: blink-ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - blink-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+networks:
+  blink-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+  code-server-config:
+  ollama-data:

@@ -1,0 +1,36 @@
+version: '3.9'
+
+# This file allows you to override Docker Compose settings for development
+# Rename this file to docker-compose.override.yml to use it
+# It will be automatically loaded by docker-compose
+
+services:
+  backend:
+    # Enable debug mode for development
+    environment:
+      - DEBUG=True
+      - DJANGO_LOG_LEVEL=DEBUG
+    # Mount local backend code
+    volumes:
+      - ./backend:/app
+    # Keep container running even if it crashes
+    restart: unless-stopped
+
+  frontend:
+    # Mount local source code for hot reload
+    volumes:
+      - ./src:/app/src
+      - ./index.html:/app/index.html
+      - ./vite.config.ts:/app/vite.config.ts
+      - ./tailwind.config.js:/app/tailwind.config.js
+    restart: unless-stopped
+
+  # Don't run these in development
+  cloudflare-tunnel:
+    profiles:
+      - donotstart
+
+  ollama:
+    # For development, you might want to run Ollama locally instead
+    profiles:
+      - donotstart
