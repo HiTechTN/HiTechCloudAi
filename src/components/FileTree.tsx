@@ -1,5 +1,5 @@
 import { File as FileType, Project } from '../types';
-import { ChevronRight, File, Folder, Plus, Trash2 } from 'lucide-react';
+import { ChevronRight, File, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 interface FileTreeProps {
