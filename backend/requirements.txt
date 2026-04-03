@@ -16,3 +16,9 @@ cryptography==41.0.7
 websocket-client==1.7.0
 httpx==0.25.2
 python-multipart==0.0.6
+pytest==7.4.0
+pytest-django==4.5.2
+pytest-cov==4.1.0
+pytest-mock==3.11.1
+factory-boy==3.3.0
+faker==21.0.0
