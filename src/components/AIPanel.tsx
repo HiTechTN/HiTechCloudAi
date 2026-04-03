@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Send, Copy, Trash2, ChevronDown } from 'lucide-react';
+import { Send, Copy, ChevronDown } from 'lucide-react';
 import { CodeGeneration } from '../types';
 
 interface AIPanelProps {
