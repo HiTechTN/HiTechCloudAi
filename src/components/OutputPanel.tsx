@@ -1,5 +1,5 @@
 import { ExecutionResult } from '../types';
-import { X, Copy } from 'lucide-react';
+import { X, Copy, Download } from 'lucide-react';
 
 interface OutputPanelProps {
   result: ExecutionResult | null;

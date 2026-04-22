@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { File as FileType } from '../types';
-import { Save, Play, Copy, Trash2 } from 'lucide-react';
+import { ChevronDown, Save, Play, Copy, Trash2 } from 'lucide-react';
 
 interface EditorProps {
   file: FileType | null;
